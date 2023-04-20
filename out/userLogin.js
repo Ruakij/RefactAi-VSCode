@@ -113,17 +113,103 @@ async function login() {
     headers.Authorization = `Bearer ${apiKey}`;
     try {
         statusBar.set_website_message("");
-        let req = new fetchH2.Request(login_url, init);
-        let result_promise;
-        try {
-            result_promise = fetchH2.fetch(req);
+
+        let json;
+        // Skip login when custom url is specified
+        if(!vscode.workspace.getConfiguration().get('refactai.infurl')){
+            let req = new fetchH2.Request(login_url, init);
+            let result_promise;
+            try {
+                result_promise = fetchH2.fetch(req);
+            }
+            catch (error) {
+                await usageStats.report_success_or_failure(false, "login(1)", login_url, error, "");
+                return;
+            }
+            let result = await result_promise;
+            json = await result.json();
+        } else {
+            json = JSON.parse(`
+            {
+                "retcode": "OK",
+                "account": "User",
+                "inference_url": "",
+                "inference": "SELFHOSTED",
+                "tooltip_message": "",
+                "login_message": "",
+                "longthink-functions-today-v2": {
+                    "add-type-hints": {
+                        "function_name": "add-type-hints",
+                        "metering": 0,
+                        "label": "Add Type Hints",
+                        "supports_highlight": 1,
+                        "supports_selection": 1,
+                        "selected_lines_min": 1,
+                        "selected_lines_max": 10,
+                        "third_party": 0,
+                        "supports_languages": "*.py;*.php;*.js",
+                        "mini_html": "<div>    <p>A quick way to add type hints for interpreted languages!</p>    <br/>    <img src='https://staging.smallcloud.ai/gif/add-type-hints-01.gif' alt='' height='500' loop>    <br/>    <p>Without selection, this tool will highlight areas where type hints can be added. Click on highlighted area.</p>    <p>With selection, it will work on the selected lines immediately.</p></div>",
+                        "model": "CONTRASTcode",
+                        "model_fixed_intent": "Add type hints",
+                        "function_selection": "diff-selection",
+                        "function_hl_click": "diff-atcursor",
+                        "function_highlight": "highlight",
+                        "catch_all_selection": 0,
+                        "catch_all_hl": 0,
+                        "catch_question_mark": 0,
+                        "is_liked": 0,
+                        "likes": 0
+                    },
+                    "hl-and-fix": {
+                        "function_name": "hl-and-fix",
+                        "metering": 0,
+                        "label": "Highlight & Fix",
+                        "supports_highlight": 1,
+                        "supports_selection": 0,
+                        "selected_lines_min": 0,
+                        "selected_lines_max": 0,
+                        "third_party": 0,
+                        "supports_languages": "*.*",
+                        "mini_html": "<div>    <p>Default action for any typed intent, if no code is selected.</p>    <br/>    <p>This tool highlights all the places that is likely to change given your intent.</p>    <br/>    <p>Click on the highlighted area, the model will try to generate a change in code according to your intent.</p>    <br/>    <img src='https://staging.smallcloud.ai/gif/highlight-and-refactor-03.gif' alt='' height='500' loop>    <br/>    <p>Works best for:</p>    <ul>        <li>Fixing types, variables, syntax</li>        <li>Simple refactoring</li>    </ul></div>",
+                        "model": "CONTRASTcode",
+                        "model_fixed_intent": "",
+                        "function_selection": "",
+                        "function_hl_click": "diff-atcursor",
+                        "function_highlight": "highlight",
+                        "catch_all_selection": 0,
+                        "catch_all_hl": 1,
+                        "catch_question_mark": 0,
+                        "is_liked": 0,
+                        "likes": 0
+                    },
+                    "select-and-refactor": {
+                        "function_name": "select-and-refactor",
+                        "metering": 0,
+                        "label": "Select & Refactor",
+                        "supports_highlight": 0,
+                        "supports_selection": 1,
+                        "selected_lines_min": 1,
+                        "selected_lines_max": 20,
+                        "third_party": 0,
+                        "supports_languages": "*.*",
+                        "mini_html": "<div>    <p>Default action for any typed intent, if some code is selected.</p>    <br/>    <img src='https://staging.smallcloud.ai/gif/select-and-refactor-01.gif' alt='' height='500' loop>    <br/>    <p>Works best for:</p>    <ul>        <li>Local refactoring, such as 'replace with list comprehension', 'use lambda'</li>        <li>Simple instructions, such as 'Replace ul with ol'</li>        <li>Convert dict to class</li>        <li>Fixing types, syntax, writing docstrings</li>    </ul>    <p>Don't forget to run tests after any refactoring.</p></div>",
+                        "model": "CONTRASTcode",
+                        "model_fixed_intent": "",
+                        "function_selection": "diff-selection",
+                        "function_hl_click": "",
+                        "function_highlight": "",
+                        "catch_all_selection": 1,
+                        "catch_all_hl": 0,
+                        "catch_question_mark": 0,
+                        "is_liked": 0,
+                        "likes": 0
+                    }
+                },
+                "metering_balance": -1
+            }
+            `);
         }
-        catch (error) {
-            await usageStats.report_success_or_failure(false, "login(1)", login_url, error, "");
-            return;
-        }
-        let result = await result_promise;
-        let json = await result.json();
+
         if (json.retcode === "OK") {
             global.user_logged_in = json.account;
             global.user_metering_balance = json.metering_balance;
