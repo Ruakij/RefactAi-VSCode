@@ -149,6 +149,16 @@ class PanelWebview {
                             return;
                         }
                         intent = data.intent;
+                        
+                        // When no intent specified, ask for it
+                        if(intent === "") {
+                            // FIXME: Kinda crappy because of the save-aspect of this function
+                            const ok = await extension.ask_and_save_intent();
+                            if(ok)
+                                intent = estate.global_intent;
+                            else
+                                return;
+                        }
                     }
                     if (function_name.includes("free-chat")) {
                         await open_chat_tab(intent, editor, true, model_suggest);
