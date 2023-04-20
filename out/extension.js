@@ -214,15 +214,22 @@ function activate(context) {
     let login = vscode.commands.registerCommand('refactaicmd.login', () => {
         login_clicked();
     });
-    let stats_timer = setInterval(() => {
-        usageStats.report_usage_stats();
-        clearInterval(stats_timer);
-        // We at SMC need to know quickly if there is any widespread problems,
-        // please look inside: there is not much being sent.
-        stats_timer = setInterval(() => {
+    
+    // Check VSCode global telemetry-setting
+    const telemetryLevel = vscode.workspace.getConfiguration().get('telemetry.telemetryLevel')
+    // TODO: Add listener in case it was changed afterwards, also see https://code.visualstudio.com/api/extension-guides/telemetry
+    if(telemetryLevel === "all"){   // "all" is the highest level and the first (and only one) to include usage data
+        let stats_timer = setInterval(() => {
             usageStats.report_usage_stats();
-        }, 86400000);
-    }, 60000); // Start with 1 minute, change to 24 hours
+            clearInterval(stats_timer);
+            // We at SMC need to know quickly if there is any widespread problems,
+            // please look inside: there is not much being sent.
+            stats_timer = setInterval(() => {
+                usageStats.report_usage_stats();
+            }, 86400000);
+        }, 60000); // Start with 1 minute, change to 24 hours
+    }
+    
     context.subscriptions.push(login);
     let logout = vscode.commands.registerCommand('refactaicmd.logout', async () => {
         context.globalState.update('codifyFirstRun', false);
